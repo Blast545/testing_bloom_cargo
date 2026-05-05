@@ -1,5 +1,6 @@
 output/*
 !output/.gitkeep
 bloom-cargo-deb-test/bloom/
+.claude/settings.local.json
 __pycache__/
 *.pyc

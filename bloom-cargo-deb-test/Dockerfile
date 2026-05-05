@@ -82,12 +82,6 @@ RUN printf '#!/bin/sh\necho "# pallet-patcher stub: no-op" > "$(pwd)/.pallet-pat
 WORKDIR /work
 COPY ros_tokio_demo /work/ros_tokio_demo
 
-# --- Pre-fetch crate dependencies -------------------------------------------
-# cargo needs network access to download the crates.io index and crate sources.
-# Do it here (during image build) so the in-container build can run offline.
-# This also generates a real Cargo.lock that dh-cargo can use.
-RUN cargo fetch --manifest-path /work/ros_tokio_demo/Cargo.toml
-
 # --- Path 2a: generate the debian/ tree via `bloom-generate debian` ---------
 # Plain Debian/Ubuntu packaging path (mirrors PR #763's plain-rpm scope):
 # package name `ros-tokio-demo`, install prefix `/usr`. Useful for distro
