@@ -1,16 +1,15 @@
 # Dockerfile for testing the bloom "cargo" Debian template PR.
 #
-# Stages:
-#   1. Install bloom with the cargo-debian patch applied.
-#   2. Run `bloom-generate debian` on ros_tokio_demo (Path 2).
-#   3. Run `dpkg-buildpackage` to produce a real .deb (Path 3).
+# Image contents (crate-agnostic):
+#   - bloom (with the cargo-debian patch) installed
+#   - dh-cargo, cargo, cargo-auditable, rustc, debhelper, fakeroot, etc.
+#   - pallet-patcher stub
+#   - build_debian_variant.sh / build_rosdebian_variant.sh helpers
 #
-# Usage:
-#   docker build -t bloom-cargo-test .
-#   docker run --rm -it bloom-cargo-test
-#
-# The container drops you into a shell with the fixture at /work/ros_tokio_demo
-# and a prebuilt generated debian/ tree, ready for you to run the build.
+# At `docker run` time, start_docker.sh bind-mounts a crate directory at
+# /work/crate (read-only) and the host output dir at /output. The build
+# scripts copy /work/crate to a writable per-variant workdir, run
+# bloom-generate + dpkg-buildpackage, and drop the .deb into /output.
 
 FROM ubuntu:26.04
 
@@ -78,47 +77,11 @@ RUN pip3 install --break-system-packages /src/bloom
 RUN printf '#!/bin/sh\necho "# pallet-patcher stub: no-op" > "$(pwd)/.pallet-patcher.stub"\nexit 0\n' \
     > /usr/local/bin/pallet-patcher && chmod +x /usr/local/bin/pallet-patcher
 
-# --- Fixture ----------------------------------------------------------------
+# --- Build workdir ----------------------------------------------------------
+# /work/crate is bind-mounted from the host at `docker run` time (see
+# start_docker.sh). The build scripts copy it to /work/build-<variant>
+# before running bloom-generate + dpkg-buildpackage.
 WORKDIR /work
-COPY ros_tokio_demo /work/ros_tokio_demo
-
-# --- Path 2a: generate the debian/ tree via `bloom-generate debian` ---------
-# Plain Debian/Ubuntu packaging path (mirrors PR #763's plain-rpm scope):
-# package name `ros-tokio-demo`, install prefix `/usr`. Useful for distro
-# packagers who don't have an /opt/ros overlay.
-RUN cd /work/ros_tokio_demo && \
-    bloom-generate debian \
-        --os-name ubuntu \
-        --os-version resolute \
-        --ros-distro rolling \
-        && chmod +x debian/rules \
-        && echo "=== [debian] Generated debian/ tree ===" \
-        && ls -la debian/ \
-        && echo "=== [debian] debian/control ===" \
-        && cat debian/control \
-        && echo "=== [debian] debian/rules ===" \
-        && cat debian/rules
-
-# --- Path 2b: generate the debian/ tree via `bloom-generate rosdebian` ------
-# ROS-overlay packaging path: package name `ros-rolling-ros-tokio-demo`,
-# install prefix `/opt/ros/rolling`. This is what real ROS Rust packages
-# will ship as. Re-uses the same templates/cargo/ via DebianGenerator
-# inheritance — if this build also succeeds, we've shown the cargo template
-# works for both `debian` and `rosdebian` flavors with no extra wiring.
-RUN cp -a /work/ros_tokio_demo /work/ros_tokio_demo_rosdeb && \
-    cd /work/ros_tokio_demo_rosdeb && \
-    rm -rf debian && \
-    bloom-generate rosdebian \
-        --os-name ubuntu \
-        --os-version resolute \
-        --ros-distro rolling \
-        && chmod +x debian/rules \
-        && echo "=== [rosdebian] Generated debian/ tree ===" \
-        && ls -la debian/ \
-        && echo "=== [rosdebian] debian/control ===" \
-        && cat debian/control \
-        && echo "=== [rosdebian] debian/rules ===" \
-        && cat debian/rules
 
 # --- Helper scripts ---------------------------------------------------------
 # Drop the build_*_variant.sh helpers in /work so you can run them directly

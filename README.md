@@ -13,12 +13,13 @@ testing_bloom_cargo/
 ├── output/                       # shared, bind-mounted into both containers as /output/
 ├── inspect_output.sh             # host-side SBOM dump for every .deb in output/
 ├── bloom-cargo-deb-test/         # builder
-│   ├── Dockerfile
+│   ├── Dockerfile                # crate-agnostic: bloom + tooling, no source baked in
 │   ├── build_docker.sh
-│   ├── start_docker.sh           # mounts ../output:/output
+│   ├── start_docker.sh           # bind-mounts a crate dir to /work/crate (ro) + ../output to /output
+│   ├── ros_tokio_demo/           # default fixture crate (used if no arg passed)
 │   └── scripts/
-│       ├── build_debian_variant.sh    # ends with `cp /work/*.deb /output/`
-│       └── build_rosdebian_variant.sh # ends with `cp /work/*.deb /output/`
+│       ├── build_debian_variant.sh    # cp + bloom-generate debian + dpkg-buildpackage
+│       └── build_rosdebian_variant.sh # cp + bloom-generate rosdebian + dpkg-buildpackage
 └── bloom-cargo-deb-inspect/      # inspector
     ├── Dockerfile                # cargo-audit + dpkg-dev + binutils (Ubuntu 26.04 system rustc)
     ├── build_docker.sh
@@ -59,8 +60,10 @@ Replace `<PR#>` with the bloom PR number that adds the cargo Debian template.
 cd ~/testing_bloom_cargo/bloom-cargo-deb-test    && ./build_docker.sh
 cd ~/testing_bloom_cargo/bloom-cargo-deb-inspect && ./build_docker.sh
 
-# Generate the debs:
+# Generate the debs (default crate is bloom-cargo-deb-test/ros_tokio_demo):
 cd ~/testing_bloom_cargo/bloom-cargo-deb-test && ./start_docker.sh
+# Or test a different crate:
+# ./start_docker.sh /path/to/your/ros-rust-crate
 # inside builder container:
 ./build_debian_variant.sh
 ./build_rosdebian_variant.sh
