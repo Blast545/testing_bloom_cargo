@@ -1,0 +1,5 @@
+output/*
+!output/.gitkeep
+bloom-cargo-deb-test/bloom/
+__pycache__/
+*.pyc
