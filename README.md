@@ -36,22 +36,12 @@ immediately visible to the inspector.
 git clone git@github.com:blast545/testing_bloom_cargo.git
 cd testing_bloom_cargo
 
-# bloom is not vendored — clone upstream, then fetch the PR with the cargo template
-git clone https://github.com/ros-infrastructure/bloom.git bloom-cargo-deb-test/bloom
-cd bloom-cargo-deb-test/bloom
-git fetch origin pull/<PR#>/head:cargo-debian
-git checkout cargo-debian
-cd ../..
+# bloom is not vendored — clone the cargo-Debian PR branch from the fork.
+# Upstream PR: https://github.com/ros-infrastructure/bloom/pull/774
+git clone -b blast545/cargo_debian_template \
+    https://github.com/Blast545/bloom.git \
+    bloom-cargo-deb-test/bloom
 ```
-
-Or with the GitHub CLI:
-
-```bash
-git clone https://github.com/ros-infrastructure/bloom.git bloom-cargo-deb-test/bloom
-cd bloom-cargo-deb-test/bloom && gh pr checkout <PR#> && cd ../..
-```
-
-Replace `<PR#>` with the bloom PR number that adds the cargo Debian template.
 
 ## Workflow
 
